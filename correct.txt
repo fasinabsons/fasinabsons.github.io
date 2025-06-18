@@ -1,0 +1,633 @@
+### logic.txt
+
+#### Issues I Find
+- The bulk functionality in both Standard and Template modes is inaccurate.
+- The routing is not realistic; I want it very simple: let users choose Template or Without Template, then Single or Bulk.
+- Business to QR code should be entirely separate, and in Standard mode, we don’t show messages or additional details, just the QR code and vCard.
+- The QR code and business card are separate in the current Business Card to QR feature; we don’t need to generate a business card from a business card.
+- The Template preview works correctly in Single mode, but I want a similar preview in Business Card to QR (Single and Bulk), showing only the QR code with minimal messages.
+- Bulk in Standard mode uses a different style; it should match Template’s style, accepting Excel files correctly.
+- Previews should include a download button, allowing users to download individual QR codes, vCards, or all as a ZIP file.
+
+#### Requirements and Features
+
+##### 1. Standard Mode
+- **Description**: A straightforward QR code generator where the QR code embeds vCard data for users to scan and save contact details directly to their phone.
+- **Input**:
+  - Users can manually enter details or upload an Excel file with:
+    - Firstname
+    - Lastname
+    - Organization
+    - Position (Work)
+    - Phone (Work)
+    - Phone (Private)
+    - Phone (Mobile)
+    - Fax (Work)
+    - Fax (Private)
+    - Email
+    - Website
+    - Street
+    - Zipcode
+    - City
+    - State
+    - Country
+  - Supports partial data; vCards generate even with missing fields.
+- **Customization**:
+  - Colors: Foreground Color, Single Color, Color Gradient, Custom Eye Color (default #000000), Background Color (default #FFFFFF).
+  - Logo Upload: Option to upload a logo (.png, .jpg, .svg, max 10MB) or select from a gallery, with an option to remove the background.
+  - Future Customization: Add options later (not now).
+- **Output**:
+  - Generates QR codes and vCards for all entries.
+  - Download options: Individual QR code, vCard, or all as a ZIP file.
+- **Behavior**: No data storage; import Excel, generate QR codes/vCards, and forget.
+- **User Flow**: Simple React app where users upload Excel or enter details, generate, and download.
+
+##### 2. Template Mode
+- **Description**: Uses separate files to avoid conflicts, offering predefined layouts with the QR code embedded, customizable messages, and background images.
+- **Template Styles**:
+  1. QR code on top, single text message below.
+  2. Text message on top, QR code on bottom.
+  3. QR code in the middle, two messages (one above, one below).
+  4. QR code on top, two lines of message below.
+- **Customization**:
+  - Background Image: Select from defaults or upload custom (PNG, JPG, SVG, max 10MB).
+  - Font: Choose from modern default fonts or upload custom fonts.
+  - Message Transparency: Default transparent, adjustable by user.
+  - Font Color: Customizable.
+- **Output**:
+  - Single mode: Generate and download QR code (embedded in card) or vCard.
+  - Bulk mode: Upload Excel with the same details as Standard, generate all QR codes in the selected template, and download as ZIP or individual files.
+- **User Flow**: Users select a template, input details/messages, upload background/font, and download.
+
+##### 3. Business Card to QR Code
+- **Description**: A separate feature where users scan a business card, extract details via OCR, and generate a QR code embedded on a card with optional messages and background.
+- **Input**:
+  - Scan business card image, extract details (e.g., name, phone, email).
+  - Option to edit extracted data.
+- **Customization**:
+  - Background Image: Select default or upload custom.
+  - Message: Optional, with minimal text (e.g., one line), positioned flexibly.
+  - Font: Choose default or upload custom.
+  - Transparency: Default transparent, adjustable.
+- **Output**:
+  - Single mode: Generate QR code (embedded) and vCard, with preview and download.
+  - Bulk mode: Not applicable; focus on single card scanning.
+- **User Flow**: Upload image, edit details, customize, preview, and download.
+
+#### Design Considerations
+- **QR Code Embedding**: QR code is embedded on the card with messages, no separate QR file. Messages are minimal, as all details are in the vCard.
+- **Preview**: Show preview in all modes (Single and Bulk) with a download button for QR code, vCard, or ZIP.
+- **Lockscreen Optimization**: Templates position QR codes for phone lockscreen use, with custom posters and transparent backgrounds.
+- **Font Support**: Users can upload fonts for messages; modern fonts are default and copyable.
+- **Simplicity**: Focus on QR code and vCard generation only, avoiding business card generation.
+
+#### Folder and File Structure
+- **src/components/**:
+  - `StandardGenerator.tsx`: Handles Standard mode (Single and Bulk) with Excel import, QR/vCard generation, and color/logo options.
+  - `TemplateGenerator.tsx`: Manages Template mode (Single and Bulk) with template selection, background/font/message customization.
+  - `OCRToQRGenerator.tsx`: Processes Business Card to QR, including OCR and customization.
+- **src/utils/**:
+  - `qrGenerator.ts`: Logic for vCard creation, QR generation, and download.
+  - `cardScanner.ts`: OCR functionality for business card scanning.
+- **src/assets/fonts/**: Store default and uploaded fonts.
+- **Routing**: Simple flow: Home → (Template or Without Template) → (Single or Bulk), with Business Card to QR as a separate route.
+
+#### Accuracy and Professional Logic
+- **Standard Bulk**: Match Template’s Excel handling style, ensuring accurate parsing and generation.
+- **OCR Accuracy**: Improve `tesseract.js` configuration for better text recognition.
+- **Preview Consistency**: Ensure previews in all modes show embedded QR with minimal messages, matching Template’s Single mode quality.
+- **Download Flexibility**: Offer downloads for individual QR/vCard or ZIP in all modes.
+- **No Duplicates**: Use separate files to avoid logic overlap, with utilities as reusable functions.
+
+This structure ensures a professional, accurate, and simple app, aligning with your vision.
+
+// the code for font for your reference
+// Font processing utilities for custom font handling
+
+export interface FontValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+/**
+ * Validate font file with size and type constraints
+ */
+export const validateFontFile = (file: File, maxSize: number = 5 * 1024 * 1024): FontValidationResult => {
+  // Check file type using both MIME type and extension
+  const validMimeTypes = ['font/ttf', 'font/otf', 'font/woff', 'font/woff2'];
+  const validExtensions = /\.(ttf|otf|woff|woff2)$/i;
+  
+  const isValidMimeType = validMimeTypes.includes(file.type);
+  const isValidExtension = validExtensions.test(file.name);
+  
+  if (!isValidMimeType && !isValidExtension) {
+    return {
+      valid: false,
+      error: 'Please select a valid font file (.ttf, .otf, .woff, or .woff2)'
+    };
+  }
+
+  // Check file size
+  if (file.size > maxSize) {
+    const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+    return {
+      valid: false,
+      error: `Font file must be less than ${maxSizeMB}MB`
+    };
+  }
+
+  return { valid: true };
+};
+
+/**
+ * Load custom font and return font URL
+ */
+export const loadCustomFont = async (file: File): Promise<string> => {
+  try {
+    // Read file as ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Create unique font name to prevent collisions
+    const baseName = file.name.replace(/\.[^/.]+$/, '');
+    const fontName = `${baseName}-Custom-${Date.now()}`;
+    
+    // Create font face
+    const fontFace = new FontFace(fontName, arrayBuffer);
+    
+    // Load and add to document
+    await fontFace.load();
+    document.fonts.add(fontFace);
+    
+    // Create object URL for the font
+    const fontBlob = new Blob([arrayBuffer], { type: file.type });
+    const fontUrl = URL.createObjectURL(fontBlob);
+    
+    return fontUrl;
+  } catch (error) {
+    console.error('Failed to load custom font:', error);
+    throw new Error('Failed to load font. Please try a different file.');
+  }
+};
+
+/**
+ * Check if a font is already loaded in the document
+ */
+export const isFontLoaded = (fontFamily: string): boolean => {
+  try {
+    return document.fonts.check(`1em ${fontFamily}`);
+  } catch (error) {
+    console.error('Error checking font:', error);
+    return false;
+  }
+};
+
+/**
+ * Create CSS font-face rule for custom font
+ */
+export const createFontFaceCSS = (fontName: string, fontUrl: string, fontWeight: string = '400', fontStyle: string = 'normal'): string => {
+  return `
+    @font-face {
+      font-family: "${fontName}";
+      src: url("${fontUrl}");
+      font-weight: ${fontWeight};
+      font-style: ${fontStyle};
+      font-display: swap;
+    }
+  `;
+};
+
+/**
+ * Remove custom font from document
+ */
+export const removeCustomFont = (fontFamily: string): void => {
+  try {
+    // Remove from document.fonts
+    const fontsToRemove = Array.from(document.fonts).filter(font => 
+      font.family === fontFamily
+    );
+    
+    fontsToRemove.forEach(font => {
+      document.fonts.delete(font);
+    });
+    
+    // Remove CSS link if exists
+    const linkElement = document.querySelector(`link[data-font-family="${fontFamily}"]`);
+    if (linkElement) {
+      linkElement.remove();
+    }
+  } catch (error) {
+    console.error('Error removing font:', error);
+  }
+};
+
+/**
+ * Get font metrics for better text rendering
+ */
+export const getFontMetrics = (fontFamily: string, fontSize: number = 16): { width: number; height: number } => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    return { width: 0, height: fontSize };
+  }
+  
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  const metrics = ctx.measureText('The quick brown fox jumps over the lazy dog');
+  
+  return {
+    width: metrics.width,
+    height: fontSize
+  };
+}; 
+//another part
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Search, Upload, Type, Check, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import styles from '../styles/FontSelector.module.css';
+
+// Font interface
+interface Font {
+  id: string;
+  name: string;
+  family: string;
+  category: string;
+  weight: string;
+  style: string;
+  isCustom?: boolean;
+  isLoaded?: boolean;
+  url?: string;
+  data?: ArrayBuffer;
+}
+
+interface FontSelectorProps {
+  onFontSelect?: (font: Font) => void;
+  selectedFont?: Font;
+}
+
+// Professional font collections with CDN URLs for caching
+const webFonts = [
+  { id: 'inter', name: 'Inter', family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', category: 'sans-serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' },
+  { id: 'roboto', name: 'Roboto', family: 'Roboto, sans-serif', category: 'sans-serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap' },
+  { id: 'open-sans', name: 'Open Sans', family: '"Open Sans", sans-serif', category: 'sans-serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap' },
+  { id: 'lato', name: 'Lato', family: 'Lato, sans-serif', category: 'sans-serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap' },
+  { id: 'montserrat', name: 'Montserrat', family: 'Montserrat, sans-serif', category: 'sans-serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap' },
+  { id: 'poppins', name: 'Poppins', family: 'Poppins, sans-serif', category: 'sans-serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap' },
+  
+  { id: 'playfair', name: 'Playfair Display', family: '"Playfair Display", serif', category: 'serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap' },
+  { id: 'merriweather', name: 'Merriweather', family: 'Merriweather, serif', category: 'serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap' },
+  { id: 'crimson-text', name: 'Crimson Text', family: '"Crimson Text", serif', category: 'serif', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap' },
+  
+  { id: 'fira-code', name: 'Fira Code', family: '"Fira Code", monospace', category: 'monospace', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap' },
+  { id: 'source-code-pro', name: 'Source Code Pro', family: '"Source Code Pro", monospace', category: 'monospace', weight: '400', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;400;500;600&display=swap' },
+];
+
+// System fonts (always available offline)
+const systemFonts = [
+  { id: 'system-ui', name: 'System UI', family: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', category: 'system', weight: '400', style: 'normal', isLoaded: true },
+  { id: 'arial', name: 'Arial', family: 'Arial, sans-serif', category: 'system', weight: '400', style: 'normal', isLoaded: true },
+  { id: 'helvetica', name: 'Helvetica', family: 'Helvetica, sans-serif', category: 'system', weight: '400', style: 'normal', isLoaded: true },
+  { id: 'georgia-sys', name: 'Georgia', family: 'Georgia, serif', category: 'system', weight: '400', style: 'normal', isLoaded: true },
+  { id: 'times-sys', name: 'Times New Roman', family: '"Times New Roman", serif', category: 'system', weight: '400', style: 'normal', isLoaded: true },
+  { id: 'courier-sys', name: 'Courier New', family: '"Courier New", monospace', category: 'system', weight: '400', style: 'normal', isLoaded: true },
+];
+
+const categories = [
+  { id: 'all', name: 'All Fonts' },
+  { id: 'system', name: 'System' },
+  { id: 'sans-serif', name: 'Sans Serif' },
+  { id: 'serif', name: 'Serif' },
+  { id: 'monospace', name: 'Monospace' },
+  { id: 'custom', name: 'Custom' },
+];
+
+const FontSelector: React.FC<FontSelectorProps> = ({ onFontSelect, selectedFont: propSelectedFont }) => {
+  const [fonts, setFonts] = useState<Font[]>([...systemFonts]);
+  const [selectedFont, setSelectedFont] = useState<Font>(propSelectedFont || systemFonts[0]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [loadingFonts, setLoadingFonts] = useState<Set<string>>(new Set());
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fontCacheRef = useRef<Map<string, ArrayBuffer>>(new Map());
+  const loadedLinksRef = useRef<Set<string>>(new Set());
+
+  // Update selected font when prop changes
+  useEffect(() => {
+    if (propSelectedFont) {
+      setSelectedFont(propSelectedFont);
+    }
+  }, [propSelectedFont]);
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Load and cache web fonts with duplicate prevention
+  const loadWebFont = useCallback(async (font: Font) => {
+    if (!font.url || font.isLoaded || !isOnline) return false;
+    
+    // Check if font is already loaded using document.fonts.check
+    if (document.fonts.check(`1em ${font.family}`)) {
+      setFonts(prev => prev.map(f => f.id === font.id ? { ...f, isLoaded: true } : f));
+      return true;
+    }
+    
+    // Prevent duplicate link insertion
+    if (loadedLinksRef.current.has(font.url)) {
+      return false;
+    }
+    
+    setLoadingFonts(prev => new Set(prev).add(font.id));
+    
+    try {
+      // Check if link already exists in document
+      if (!document.querySelector(`link[href="${font.url}"]`)) {
+        const link = document.createElement('link');
+        link.href = font.url;
+        link.rel = 'stylesheet';
+        link.crossOrigin = 'anonymous';
+        link.id = `font-${font.id}`;
+        
+        // Promise to wait for font load
+        const fontLoadPromise = new Promise<boolean>((resolve) => {
+          link.onload = () => {
+            setTimeout(() => {
+              document.fonts.ready.then(() => {
+                resolve(true);
+              });
+            }, 100);
+          };
+          link.onerror = () => resolve(false);
+        });
+        
+        document.head.appendChild(link);
+        loadedLinksRef.current.add(font.url);
+        
+        const success = await fontLoadPromise;
+        
+        if (success) {
+          setFonts(prevFonts => 
+            prevFonts.map(f => 
+              f.id === font.id ? { ...f, isLoaded: true } : f
+            )
+          );
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load font:', font.name, error);
+    } finally {
+      setLoadingFonts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(font.id);
+        return newSet;
+      });
+    }
+    
+    return false;
+  }, [isOnline]);
+
+  // Initialize web fonts on mount (only load if not already cached)
+  useEffect(() => {
+    const initializeFonts = async () => {
+      const allFonts = [...systemFonts, ...webFonts.map(f => ({ ...f, isLoaded: false }))];
+      setFonts(allFonts);
+      
+      // Only load fonts if online and not already loaded
+      if (isOnline) {
+        for (const font of webFonts) {
+          // Skip if already loaded
+          if (!document.fonts.check(`1em ${font.family}`)) {
+            loadWebFont(font);
+          }
+        }
+      }
+    };
+    
+    initializeFonts();
+  }, [isOnline, loadWebFont]);
+
+  // Handle custom font upload with better validation and uniqueness
+  const handleCustomFontUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    
+    const file = e.target.files[0];
+    
+    // Better file type validation using file.type when available
+    const validTypes = ['font/ttf', 'font/otf', 'font/woff', 'font/woff2'];
+    const isValidType = validTypes.includes(file.type) || file.name.match(/\.(ttf|otf|woff|woff2)$/i);
+    
+    if (!isValidType) {
+      alert('Please select a valid font file (.ttf, .otf, .woff, or .woff2)');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Font file must be less than 5MB');
+      return;
+    }
+    
+    setIsUploading(true);
+    
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      
+      // Create unique font name to prevent collisions
+      const baseName = file.name.replace(/\.[^/.]+$/, '');
+      const fontName = `${baseName}-Custom-${Date.now()}`;
+      const fontId = `custom-${Date.now()}`;
+      
+      fontCacheRef.current.set(fontId, arrayBuffer);
+      
+      // Create font face
+      const fontFace = new FontFace(fontName, arrayBuffer);
+      
+      // Load and add to document
+      await fontFace.load();
+      document.fonts.add(fontFace);
+      
+      // Create font object
+      const newFont: Font = {
+        id: fontId,
+        name: baseName, // Display original name
+        family: `"${fontName}", sans-serif`, // Use unique name internally
+        category: 'custom',
+        weight: '400',
+        style: 'normal',
+        isCustom: true,
+        isLoaded: true,
+        data: arrayBuffer
+      };
+      
+      // Add to fonts list
+      setFonts(prev => [...prev, newFont]);
+      
+      // Auto-select the uploaded font
+      setSelectedFont(newFont);
+      onFontSelect?.(newFont);
+      
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+    } catch (error) {
+      console.error('Failed to load custom font:', error);
+      alert('Failed to load font. Please try a different file.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [onFontSelect]);
+
+  // Handle font selection with loading
+  const handleFontSelect = async (font: Font) => {
+    // If it's a web font and not loaded, try to load it first
+    if (font.url && !font.isLoaded && isOnline) {
+      const loaded = await loadWebFont(font);
+      if (!loaded) {
+        alert(`Failed to load ${font.name}. Please check your internet connection.`);
+        return;
+      }
+    }
+    
+    setSelectedFont(font);
+    onFontSelect?.(font);
+  };
+
+  // Filter fonts based on category and search
+  const filteredFonts = fonts.filter(font => {
+    const matchesCategory = selectedCategory === 'all' || font.category === selectedCategory;
+    const matchesSearch = font.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div className={styles.titleSection}>
+          <Type className={styles.titleIcon} />
+          <h3 className={styles.title}>Font Selection</h3>
+          <div className={styles.connectionStatus}>
+            {isOnline ? (
+              <Wifi className={styles.onlineIcon} />
+            ) : (
+              <WifiOff className={styles.offlineIcon} />
+            )}
+          </div>
+        </div>
+        
+        {/* Search */}
+        <div className={styles.searchContainer}>
+          <Search className={styles.searchIcon} />
+          <input
+            type="text"
+            placeholder="Search fonts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+      </div>
+
+      {/* Categories */}
+      <div className={styles.categories}>
+        {categories.map(category => (
+          <button
+            key={category.id}
+            onClick={() => setSelectedCategory(category.id)}
+            className={`${styles.categoryButton} ${
+              selectedCategory === category.id ? styles.categoryButtonActive : ''
+            }`}
+            aria-pressed={selectedCategory === category.id ? 'true' : 'false'}
+          >
+            {category.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Custom Font Upload */}
+      <div className={styles.uploadSection}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".ttf,.otf,.woff,.woff2"
+          onChange={handleCustomFontUpload}
+          className={styles.hiddenInput}
+          aria-label="Upload custom font file"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className={styles.uploadButton}
+          aria-label="Upload custom font"
+        >
+          {isUploading ? (
+            <Loader2 className={styles.uploadIconLoading} />
+          ) : (
+            <Upload className={styles.uploadIcon} />
+          )}
+          {isUploading ? 'Uploading...' : 'Upload Font'}
+        </button>
+      </div>
+
+      {/* Font Grid */}
+      <div className={styles.fontGrid}>
+        {filteredFonts.map(font => (
+          <button
+            key={font.id}
+            onClick={() => handleFontSelect(font)}
+            className={`${styles.fontCard} ${
+              selectedFont.id === font.id ? styles.fontCardSelected : ''
+            } ${!font.isLoaded && font.url ? styles.fontCardLoading : ''}`}
+            style={{ 
+              fontFamily: font.family,
+              fontWeight: font.weight,
+              fontStyle: font.style
+            }}
+            disabled={loadingFonts.has(font.id)}
+          >
+            <div className={styles.fontCardContent}>
+              <div className={styles.fontName}>{font.name}</div>
+              <div className={styles.fontCategory}>{font.category}</div>
+              <div className={styles.fontPreview}>
+                The quick brown fox jumps over the lazy dog
+              </div>
+              
+              {selectedFont.id === font.id && (
+                <Check className={styles.selectedIcon} />
+              )}
+              
+              {loadingFonts.has(font.id) && (
+                <Loader2 className={styles.loadingIcon} />
+              )}
+              
+              {!font.isLoaded && font.url && !isOnline && (
+                <WifiOff className={styles.offlineIcon} />
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {filteredFonts.length === 0 && (
+        <div className={styles.noResults}>
+          <Type className={styles.noResultsIcon} />
+          <p>No fonts found matching your criteria</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FontSelector;
