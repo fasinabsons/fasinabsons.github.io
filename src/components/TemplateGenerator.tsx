@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ArrowLeft, Upload, Download, Eye, Loader2, Check } from 'lucide-react';
 import { Contact, QRCodeStyle } from '../types';
 import { ContactForm, QRStyleForm } from './QRFormUtils';
 import FontSelector from './FontSelector';
 import { generateEmbeddedQRCard, EmbeddedQRSettings, processBackgroundImage } from '../utils/embeddedQRGenerator';
 import { createVCardBlob, sanitizeFilename, validateContact } from '../utils/qrGenerator';
+import { svgTemplates, templateCache } from '../utils/svgToPngConverter';
 
 interface TemplateGeneratorProps {
   onBack: () => void;
@@ -50,68 +51,12 @@ const TEMPLATES: TemplateOption[] = [
   }
 ];
 
-const DEFAULT_BACKGROUNDS: BackgroundOption[] = [
-  {
-    id: 'template1',
-    name: 'Template 01',
-    url: '/assets/01.png'
-  },
-  {
-    id: 'template2',
-    name: 'Template 02',
-    url: '/assets/02.png'
-  },
-  {
-    id: 'template3',
-    name: 'Template 03',
-    url: '/assets/03.png'
-  },
-  {
-    id: 'template4',
-    name: 'Template 04',
-    url: '/assets/04.png'
-  },
-  {
-    id: 'template5',
-    name: 'Template 05',
-    url: '/assets/05.png'
-  },
-  {
-    id: 'template6',
-    name: 'Template 06',
-    url: '/assets/06.png'
-  },
-  {
-    id: 'template7',
-    name: 'Template 07',
-    url: '/assets/07.png'
-  },
-  {
-    id: 'template8',
-    name: 'Template 08',
-    url: '/assets/08.png'
-  },
-  {
-    id: 'template9',
-    name: 'Template 09',
-    url: '/assets/09.png'
-  },
-  {
-    id: 'template10',
-    name: 'Template 10',
-    url: '/assets/10.png'
-  },
-  {
-    id: 'template11',
-    name: 'Template 11',
-    url: '/assets/11.png'
-  },
-  {
-    id: 'template12',
-    name: 'Template 12',
-    url: '/assets/12.png'
-  }
-];
+// Using SVG templates instead of heavy PNG files for better performance
+const DEFAULT_BACKGROUNDS: BackgroundOption[] = svgTemplates.map(template => ({
+  id: template.id,
+  name: template.name,
+  url: null // Will be generated from SVG
+}));
 
 const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onBack }) => {
   const [contact, setContact] = useState<Contact>({
@@ -164,6 +109,48 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onBack }) => {
   const [errors, setErrors] = useState<string[]>([]);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
+  const [loading, setLoading] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string>('');
+  const [layout, setLayout] = useState<'qr-bottom' | 'qr-middle' | 'qr-top' | 'qr-both-bottom'>('qr-bottom');
+  const [templatePreviews, setTemplatePreviews] = useState<Record<string, string>>({});
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Load template previews using SVG system
+  useEffect(() => {
+    const loadTemplatePreviews = async () => {
+      const previews: Record<string, string> = {};
+      
+      // Load templates in parallel for better performance
+      const loadPromises = svgTemplates.map(async (template) => {
+        try {
+          // Generate smaller preview images (400x700) for better performance
+          const previewUrl = await templateCache.getTemplate(template.id, 400, 700);
+          previews[template.id] = previewUrl;
+        } catch (error) {
+          console.error(`Failed to load template ${template.id}:`, error);
+          // Fallback to a simple gradient if SVG fails
+          previews[template.id] = 'data:image/svg+xml;base64,' + btoa(`
+            <svg viewBox="0 0 400 700" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="fallback" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#fallback)"/>
+              <text x="50%" y="50%" text-anchor="middle" fill="white" font-size="16">${template.name}</text>
+            </svg>
+          `);
+        }
+      });
+
+      await Promise.all(loadPromises);
+      setTemplatePreviews(previews);
+    };
+
+    loadTemplatePreviews();
+  }, []);
+
   const handleBackgroundUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -211,51 +198,63 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onBack }) => {
     setErrors([]);
     setIsGenerating(true);
 
-    try {
-      // Create embedded QR card settings
-      const settings: EmbeddedQRSettings = {
-        contact,
-        qrStyle,
-        messages: {
-          message1: messages.message1 || contact.message1,
-          message2: messages.message2 || contact.message2
-        },
-        layout: selectedTemplate.layout,
-        textColor,
-        font: selectedFont.family,
-        backgroundImage: selectedBackground.url || undefined
-      };
+          try {
+        // Get the full-resolution template from SVG (1440x2560)
+        const templateUrl = await templateCache.getTemplate(selectedBackground.id, 1440, 2560);
+        
+        const settings: EmbeddedQRSettings = {
+          contact,
+          qrStyle,
+          backgroundImage: templateUrl,
+          messages: {
+            message1: messages.message1 || contact.message1,
+            message2: messages.message2 || contact.message2
+          },
+          layout: selectedTemplate.layout,
+          textColor,
+          font: selectedFont.family,
+          fontSize: 28,
+          textShadow: true,
+          textOutline: true,
+          qrBorderRadius: qrStyle.borderRadius || 0,
+          qrShadow: true,
+          spacing: {
+            margin: 120,
+            padding: 60,
+            elementGap: 5 // Precise 5px spacing as requested
+          },
+          typography: {
+            messageWeight: 'normal',
+            nameWeight: 'bold',
+            letterSpacing: 1.2,
+            lineHeight: 1.4
+          }
+        };
 
-      // Generate embedded QR card
-      const embeddedCardUrl = await generateEmbeddedQRCard(settings);
-      
-      // Generate vCard file
-      const vCardData = generateVCard(contact);
-      const vCardBlob = createVCardBlob(vCardData);
-      const filename = sanitizeFilename(contact.name);
-
-      setGeneratedData({
-        embeddedCardUrl,
-        vCardBlob,
-        filename,
-        vCardData
-      });
+        const imageDataUrl = await generateEmbeddedQRCard(settings);
+        
+        setGeneratedData({
+          embeddedCardUrl: imageDataUrl,
+          vCardBlob: new Blob(), // Placeholder
+          filename: contact.name || 'qr_card',
+          vCardData: ''
+        });
     } catch (error) {
-      console.error('Generation failed:', error);
-      setErrors(['Failed to generate template card. Please try again.']);
+      console.error('Error generating card:', error);
+      setErrors(['Failed to generate card. Please try again.']);
     } finally {
       setIsGenerating(false);
     }
-  }, [contact, qrStyle, messages, selectedTemplate, selectedBackground, selectedFont, textColor]);
+  }, [contact, qrStyle, messages, selectedTemplate, selectedFont, textColor, layout]);
 
   const handleDownloadCard = useCallback(() => {
-    if (!generatedData) return;
+    if (!generatedImage) return;
 
     const link = document.createElement('a');
-    link.href = generatedData.embeddedCardUrl;
-    link.download = `${generatedData.filename}_Template_Card.png`;
+    link.href = generatedImage;
+    link.download = `${contact.name}_qr_card.png`;
     link.click();
-  }, [generatedData]);
+  }, [generatedImage, contact.name]);
 
   const handleDownloadVCard = useCallback(() => {
     if (!generatedData) return;
@@ -315,23 +314,34 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onBack }) => {
               <h3 className="text-xl font-semibold text-white mb-6">Choose Template Layout</h3>
               
               <div className="grid grid-cols-2 gap-3">
-                {TEMPLATES.map((template) => (
+                {svgTemplates.map((template) => (
                   <div
                     key={template.id}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                      selectedTemplate.id === template.id
-                        ? 'border-purple-500 bg-purple-500/20'
-                        : 'border-gray-600 bg-white/5 hover:border-purple-400'
+                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      selectedTemplate === template.id
+                        ? 'border-blue-500 ring-2 ring-blue-200'
+                        : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    onClick={() => setSelectedTemplate(template)}
+                    onClick={() => setSelectedTemplate(template.id)}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-white text-sm">{template.name}</h4>
-                      {selectedTemplate.id === template.id && (
-                        <Check className="w-4 h-4 text-purple-400" />
+                    <div className="aspect-[2/3] bg-gray-100">
+                      {templatePreviews[template.id] ? (
+                        <img
+                          src={templatePreviews[template.id]}
+                          alt={template.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-300">{template.description}</p>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2">
+                      <div className="font-medium">{template.name}</div>
+                      <div className="text-gray-300 capitalize">{template.category}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -525,14 +535,14 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onBack }) => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
               <h3 className="text-xl font-semibold text-white mb-6">Preview & Download</h3>
               
-              {generatedData ? (
+              {generatedImage ? (
                 <div className="space-y-6">
                   {/* Template Card Preview */}
                   <div className="text-center">
                     <div className="bg-black rounded-lg p-4">
                       <div className="relative mx-auto w-[270px] h-[480px]">
                         <img 
-                          src={generatedData.embeddedCardUrl}
+                          src={generatedImage}
                           alt="Generated Template Card"
                           className="w-full h-full object-cover rounded-lg shadow-lg"
                         />
@@ -568,7 +578,7 @@ const TemplateGenerator: React.FC<TemplateGeneratorProps> = ({ onBack }) => {
                   <div className="bg-white/10 rounded-lg p-4">
                     <h4 className="text-white font-semibold mb-3">Template Settings</h4>
                     <div className="text-sm text-gray-300 space-y-1">
-                      <div><strong>Layout:</strong> {selectedTemplate.name}</div>
+                      <div><strong>Layout:</strong> {TEMPLATES.find(t => t.id === selectedTemplate)?.name}</div>
                       <div><strong>Font:</strong> {selectedFont.name}</div>
                       <div><strong>Background:</strong> {selectedBackground.name}</div>
                       <div><strong>Text Color:</strong> {textColor}</div>
