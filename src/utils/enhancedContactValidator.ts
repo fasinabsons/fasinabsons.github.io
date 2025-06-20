@@ -17,7 +17,6 @@ interface OCRContactData extends Contact {
 
 class EnhancedContactValidator {
   private emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  private phoneRegex = /^[\+]?[\d\s\-\(\)\.]{7,15}$/;
   private urlRegex = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
 
   validateOCRContact(contact: OCRContactData): ValidationResult {
@@ -165,18 +164,20 @@ class EnhancedContactValidator {
     // Validate each phone number
     let hasValidPhone = false;
     phoneNumbers.forEach((phone, index) => {
-      const cleanPhone = phone.replace(/[^\d\+]/g, '');
-      
-      if (cleanPhone.length < 7) {
-        warnings.push(`Phone number ${index + 1} seems too short`);
-      } else if (cleanPhone.length > 15) {
-        warnings.push(`Phone number ${index + 1} seems too long`);
-      } else {
-        hasValidPhone = true;
+      if (phone) {
+        const cleanPhone = phone.replace(/[^\d+]/g, '');
+        
+        if (cleanPhone.length < 7) {
+          warnings.push(`Phone number ${index + 1} seems too short`);
+        } else if (cleanPhone.length > 15) {
+          warnings.push(`Phone number ${index + 1} seems too long`);
+        } else {
+          hasValidPhone = true;
+        }
       }
 
       // Check for common OCR phone errors
-      if (this.hasCommonPhoneOCRErrors(phone)) {
+      if (phone && this.hasCommonPhoneOCRErrors(phone)) {
         warnings.push(`Phone number ${index + 1} may contain OCR errors`);
         suggestions.push('Common phone OCR errors: "S" → "5", "O" → "0", "I" → "1"');
       }
@@ -313,14 +314,14 @@ class EnhancedContactValidator {
       /[1Il]{2,}/, // Multiple 1/I/l together
       /[rn]/g, // rn that might be m
       /\s{2,}/, // Multiple spaces
-      /[^\w\s\-\.']/g // Unusual characters for names
+      /[^\w\s\-.']/g // Unusual characters for names
     ];
     
     return suspiciousPatterns.some(pattern => pattern.test(text));
   }
 
   private hasCommonEmailOCRErrors(email: string): boolean {
-    return /[rn]n|[cl]d|[0O][a-z]|[@]{2,}|[\.]{2,}/.test(email);
+    return /[rn]n|[cl]d|[0O][a-z]|[@]{2,}|[.]{2,}/.test(email);
   }
 
   private hasCommonPhoneOCRErrors(phone: string): boolean {
@@ -328,7 +329,7 @@ class EnhancedContactValidator {
   }
 
   private hasCommonWebsiteOCRErrors(website: string): boolean {
-    return /[rn]n|[cl]om|[0O][a-z]|[\.]{2,}|[,]/.test(website);
+    return /[rn]n|[cl]om|[0O][a-z]|[.]{2,}|[,]/.test(website);
   }
 
   private isValidDomain(domain: string): boolean {

@@ -63,16 +63,18 @@ const TEMPLATES: TemplateOption[] = [
 ];
 
 const DEFAULT_BACKGROUNDS: BackgroundOption[] = [
-  { id: 'template1', name: 'Professional 01', url: '/src/assets/01.png' },
-  { id: 'template2', name: 'Professional 02', url: '/src/assets/02.png' },
-  { id: 'template3', name: 'Professional 03', url: '/src/assets/03.png' },
-  { id: 'template4', name: 'Professional 04', url: '/src/assets/04.png' },
-  { id: 'template5', name: 'Professional 05', url: '/src/assets/05.png' },
-  { id: 'template6', name: 'Professional 06', url: '/src/assets/06.png' },
-  { id: 'template7', name: 'Professional 07', url: '/src/assets/07.png' },
-  { id: 'template8', name: 'Professional 08', url: '/src/assets/08.png' },
-  { id: 'template9', name: 'Professional 09', url: '/src/assets/09.png' },
-  { id: 'template10', name: 'Professional 10', url: '/src/assets/10.png' }
+  { id: 'template1', name: 'Professional 01', url: '/assets/01.png' },
+  { id: 'template2', name: 'Professional 02', url: '/assets/02.png' },
+  { id: 'template3', name: 'Professional 03', url: '/assets/03.png' },
+  { id: 'template4', name: 'Professional 04', url: '/assets/04.png' },
+  { id: 'template5', name: 'Professional 05', url: '/assets/05.png' },
+  { id: 'template6', name: 'Professional 06', url: '/assets/06.png' },
+  { id: 'template7', name: 'Professional 07', url: '/assets/07.png' },
+  { id: 'template8', name: 'Professional 08', url: '/assets/08.png' },
+  { id: 'template9', name: 'Professional 09', url: '/assets/09.png' },
+  { id: 'template10', name: 'Professional 10', url: '/assets/10.png' },
+  { id: 'template11', name: 'Professional 11', url: '/assets/11.png' },
+  { id: 'template12', name: 'Professional 12', url: '/assets/12.png' },
 ];
 
 const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack }) => {
@@ -254,7 +256,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
 
     setIsGenerating(false);
     setStep('results');
-  }, [contacts, qrStyle, selectedBackground, selectedTemplate, textColor, selectedFont]);
+  }, [contacts, qrStyle, selectedBackground, selectedTemplate, textColor, selectedFont, bulkMessages.commonMessage1, bulkMessages.commonMessage2, bulkMessages.useCommonMessages, bulkMessages.useExcelMessages]);
 
   const downloadAll = useCallback(async () => {
     const successfulResults = results.filter(r => r.success);
@@ -318,7 +320,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+        <div className="bg-gray-800/90 rounded-xl p-6">
           <h3 className="text-xl font-semibold text-white mb-4">Upload CSV File</h3>
           
           <div
@@ -377,7 +379,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
           )}
         </div>
 
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+        <div className="bg-gray-800/90 rounded-xl p-6">
           <h3 className="text-xl font-semibold text-white mb-4">Sample CSV Format</h3>
           
           <div className="space-y-4">
@@ -421,7 +423,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
       <div className="grid lg:grid-cols-2 gap-8">
         <div className="space-y-6">
           {/* Template Selection */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <div className="bg-gray-800/90 rounded-xl p-6">
             <h3 className="text-xl font-semibold text-white mb-4">Phone Screen Layout</h3>
             <p className="text-gray-300 text-sm mb-6">Choose QR code position for optimal phone lockscreen use</p>
             
@@ -432,7 +434,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
                   className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
                     selectedTemplate.id === template.id
                       ? 'border-purple-500 bg-purple-500/20'
-                      : 'border-gray-600 bg-white/5 hover:border-purple-400'
+                      : 'border-gray-600 bg-gray-800/50 hover:border-purple-400'
                   }`}
                   onClick={() => setSelectedTemplate(template)}
                 >
@@ -444,7 +446,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
           </div>
 
           {/* Background Templates - All 10 */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <div className="bg-gray-800/90 rounded-xl p-6">
             <h3 className="text-xl font-semibold text-white mb-4">Professional Backgrounds (No Gradients)</h3>
             
             <div className="grid grid-cols-5 gap-2">
@@ -487,7 +489,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
           </div>
 
           {/* Font & Color */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <div className="bg-gray-800/90 rounded-xl p-6">
             <h3 className="text-xl font-semibold text-white mb-4">Text Customization</h3>
             
             <div className="space-y-4">
@@ -507,7 +509,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
                     type="text"
                     value={textColor}
                     onChange={(e) => setTextColor(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white/10 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm"
+                    className="flex-1 px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm"
                     placeholder="Enter hex color"
                   />
                 </div>
@@ -527,7 +529,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
           />
 
           {/* Message Configuration */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <div className="bg-gray-800/90 rounded-xl p-6">
             <h3 className="text-xl font-semibold text-white mb-4">Message Configuration</h3>
             <p className="text-gray-300 text-sm mb-6">Choose how to handle messages for all business cards</p>
             
@@ -544,7 +546,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
                       useExcelMessages: true, 
                       useCommonMessages: false 
                     }))}
-                    className="w-4 h-4 text-purple-600 bg-white/10 border-gray-600 focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 bg-gray-800/50 border-gray-600 focus:ring-purple-500"
                   />
                   <div>
                     <span className="text-white font-medium">Use Excel/CSV Messages</span>
@@ -562,7 +564,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
                       useCommonMessages: true, 
                       useExcelMessages: false 
                     }))}
-                    className="w-4 h-4 text-purple-600 bg-white/10 border-gray-600 focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 bg-gray-800/50 border-gray-600 focus:ring-purple-500"
                   />
                   <div>
                     <span className="text-white font-medium">Use Common Messages</span>
@@ -573,7 +575,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
 
               {/* Common Message Inputs */}
               {bulkMessages.useCommonMessages && (
-                <div className="space-y-3 mt-4 p-4 bg-white/5 rounded-lg border border-purple-500/30">
+                <div className="space-y-3 mt-4 p-4 bg-gray-800/50 rounded-lg border border-purple-500/30">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Primary Message (30 chars max)
@@ -587,7 +589,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
                         commonMessage1: e.target.value 
                       }))}
                       maxLength={30}
-                      className="w-full px-3 py-2 bg-white/10 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     />
                     <div className="text-xs text-gray-400 mt-1">
                       {bulkMessages.commonMessage1.length}/30 characters
@@ -607,7 +609,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
                         commonMessage2: e.target.value 
                       }))}
                       maxLength={30}
-                      className="w-full px-3 py-2 bg-white/10 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     />
                     <div className="text-xs text-gray-400 mt-1">
                       {bulkMessages.commonMessage2.length}/30 characters
@@ -621,11 +623,11 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
 
         <div className="space-y-6">
           {/* Contact Summary */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <div className="bg-gray-800/90 rounded-xl p-6">
             <h3 className="text-xl font-semibold text-white mb-4">Contact Summary</h3>
             
             <div className="space-y-3">
-              <div className="p-3 bg-white/10 rounded-lg">
+              <div className="p-3 bg-gray-800/50 rounded-lg">
                 <div className="flex items-center justify-between p-3 bg-green-500/20 rounded-lg">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-400" />
@@ -635,7 +637,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
                 </div>
               </div>
 
-              <div className="p-3 bg-white/10 rounded-lg">
+              <div className="p-3 bg-gray-800/50 rounded-lg">
                 <div className="text-sm text-gray-300 space-y-1">
                   <div><strong>Layout:</strong> {selectedTemplate.name}</div>
                   <div><strong>Background:</strong> {selectedBackground.name}</div>
@@ -645,7 +647,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
               </div>
 
               {/* Show first few contacts */}
-              <div className="p-3 bg-white/10 rounded-lg">
+              <div className="p-3 bg-gray-800/50 rounded-lg">
                 <p className="text-white font-medium text-sm mb-2">Sample Contacts:</p>
                 <div className="space-y-1 text-xs text-gray-300">
                   {contacts.slice(0, 3).map((contact, index) => (
@@ -703,7 +705,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
       </div>
 
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8">
+        <div className="bg-gray-800/90 rounded-xl p-8">
           <div className="space-y-6">
             <div className="text-center">
               <Loader2 className="w-16 h-16 text-purple-400 mx-auto animate-spin mb-4" />
@@ -746,7 +748,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="space-y-6">
             {/* Summary */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+            <div className="bg-gray-800/90 rounded-xl p-6">
               <h3 className="text-xl font-semibold text-white mb-4">Generation Summary</h3>
               
               <div className="space-y-3">
@@ -813,7 +815,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
           <div className="space-y-6">
             {/* Preview Cards */}
             {showPreview && successfulResults.length > 0 && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+              <div className="bg-gray-800/90 rounded-xl p-6">
                 <h3 className="text-xl font-semibold text-white mb-4">Preview Cards</h3>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -855,7 +857,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
 
             {/* Failed Results */}
             {failedResults.length > 0 && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+              <div className="bg-gray-800/90 rounded-xl p-6">
                 <h3 className="text-xl font-semibold text-white mb-4">Failed Contacts</h3>
                 
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -883,7 +885,7 @@ const TemplateBulkGenerator: React.FC<TemplateBulkGeneratorProps> = ({ onBack })
   const currentStepIndex = steps.indexOf(step);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-8">
           <button

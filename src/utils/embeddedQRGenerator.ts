@@ -33,11 +33,11 @@ export interface EmbeddedQRSettings {
 
 export const generateEmbeddedQRCard = async (settings: EmbeddedQRSettings): Promise<string> => {
   try {
-    // Generate QR code first
+    // Generate QR code first with optimized size
     const vcard = generateVCard(settings.contact);
     const qrCodeDataUrl = await generateQRCode(vcard, settings.qrStyle);
     
-    // Create canvas with phone wallpaper dimensions (1080x1920)
+    // Create canvas with optimized phone wallpaper dimensions
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -45,9 +45,13 @@ export const generateEmbeddedQRCard = async (settings: EmbeddedQRSettings): Prom
       throw new Error('Canvas context not available');
     }
     
-    // Set canvas dimensions for phone wallpaper
+    // Set optimized canvas dimensions for better performance
     canvas.width = 1080;
     canvas.height = 1920;
+    
+    // Enable performance optimizations
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     
     // Fill with clean solid background - NO GRADIENTS
     if (!settings.backgroundImage) {
@@ -150,18 +154,18 @@ const addQRCodeAndText = async (
         const font = settings.font || 'Inter, system-ui, sans-serif';
         const fontSize = settings.fontSize || 28;
         
-        // Enhanced spacing and typography settings with better proportions
+        // Enhanced spacing and typography settings with precise 5px gaps
         const spacing = settings.spacing || {
-          margin: 100,
-          padding: 80,
-          elementGap: 140
+          margin: 120,      // Safe area margin
+          padding: 60,      // Internal padding
+          elementGap: 5     // Precise 5px gap between elements
         };
         
         const typography = settings.typography || {
           messageWeight: 'normal',
           nameWeight: 'bold',
-          letterSpacing: 1.0,
-          lineHeight: 1.5
+          letterSpacing: 1.2,
+          lineHeight: 1.4
         };
         
         // Enhanced text properties with professional styling
@@ -169,38 +173,43 @@ const addQRCodeAndText = async (
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Enhanced shadow and outline effects
+        // Enhanced shadow and outline effects for better readability
         if (settings.textShadow !== false) {
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-          ctx.shadowBlur = 8;
-          ctx.shadowOffsetX = 3;
-          ctx.shadowOffsetY = 3;
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+          ctx.shadowBlur = 12;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
         }
         
         const centerX = canvasWidth / 2;
         
-        // Professional spacing with proper margins
+        // Professional spacing with proper margins and safe areas
         const safeAreaTop = spacing.margin;
         const safeAreaBottom = canvasHeight - spacing.margin;
         const usableHeight = safeAreaBottom - safeAreaTop;
         
-        // Define phone screen areas with better spacing
-        const topThirdCenter = safeAreaTop + (usableHeight * 0.25);
-        const middleThirdCenter = safeAreaTop + (usableHeight * 0.5);
-        const bottomThirdCenter = safeAreaTop + (usableHeight * 0.75);
-        
-        // Professional QR code sizing with better proportions
+        // Professional QR code sizing with optimal proportions
         const maxQRSize = Math.min(
-          canvasWidth * 0.35,  // Reduced to 35% of width for better balance
-          usableHeight * 0.25, // Reduced to 25% of usable height
-          280  // Smaller absolute maximum for better proportions
+          canvasWidth * 0.32,  // Optimal width ratio for mobile screens
+          usableHeight * 0.22, // Optimal height ratio for balanced layout
+          260  // Maximum size for optimal scanning and aesthetics
         );
-        const qrSize = Math.max(maxQRSize, 200); // Minimum size for scannability
+        const qrSize = Math.max(maxQRSize, 180); // Minimum size for reliable scanning
+        
+        // Calculate dynamic positioning based on content and QR size
+        const qrHalfSize = qrSize / 2;
+        const textHeight = fontSize * typography.lineHeight;
+        const nameHeight = Math.round(fontSize * 0.85) * typography.lineHeight;
+        
+        // Define screen areas with dynamic spacing to prevent overlap
+        const topAreaCenter = safeAreaTop + textHeight + spacing.padding;
+        const middleAreaCenter = safeAreaTop + (usableHeight * 0.5);
+        const bottomAreaCenter = safeAreaBottom - qrHalfSize - spacing.padding;
         
         switch (layout) {
           case 'qr-top':
-            // QR code in top third with enhanced styling
-            drawEnhancedQRCode(ctx, qrImg, centerX, topThirdCenter, qrSize, settings);
+            // QR code in top area with enhanced styling
+            drawEnhancedQRCode(ctx, qrImg, centerX, topAreaCenter + qrHalfSize, qrSize, settings);
             
             // Message in middle area with proper spacing
             if (settings.messages.message1) {
@@ -208,7 +217,7 @@ const addQRCodeAndText = async (
                 ctx, 
                 settings.messages.message1, 
                 centerX, 
-                middleThirdCenter, 
+                middleAreaCenter, 
                 font, 
                 fontSize, 
                 typography.messageWeight,
@@ -224,7 +233,7 @@ const addQRCodeAndText = async (
                 ctx,
                 settings.messages.message2,
                 centerX,
-                bottomThirdCenter,
+                bottomAreaCenter - qrHalfSize,
                 font,
                 Math.round(fontSize * 0.85),
                 typography.nameWeight,
@@ -241,7 +250,7 @@ const addQRCodeAndText = async (
                 ctx, 
                 settings.messages.message1, 
                 centerX, 
-                topThirdCenter, 
+                topAreaCenter, 
                 font, 
                 fontSize, 
                 typography.messageWeight,
@@ -251,8 +260,8 @@ const addQRCodeAndText = async (
               );
             }
             
-            // QR code in middle third with enhanced styling
-            drawEnhancedQRCode(ctx, qrImg, centerX, middleThirdCenter, qrSize, settings);
+            // QR code in middle area with enhanced styling
+            drawEnhancedQRCode(ctx, qrImg, centerX, middleAreaCenter, qrSize, settings);
             
             // Name at bottom with enhanced typography
             if (settings.messages.message2) {
@@ -260,7 +269,7 @@ const addQRCodeAndText = async (
                 ctx,
                 settings.messages.message2,
                 centerX,
-                bottomThirdCenter,
+                bottomAreaCenter - qrHalfSize,
                 font,
                 Math.round(fontSize * 0.85),
                 typography.nameWeight,
@@ -271,15 +280,16 @@ const addQRCodeAndText = async (
             break;
             
           case 'qr-both-bottom': {
-            // Both message and QR in bottom area with professional spacing
-            const bottomAreaTop = bottomThirdCenter - spacing.elementGap;
+            // Both message and QR in bottom area with precise 5px spacing
+            const qrY = bottomAreaCenter;
+            const messageY = qrY - qrHalfSize - spacing.elementGap - (fontSize * typography.lineHeight / 2);
             
             if (settings.messages.message1) {
               drawEnhancedMessage(
                 ctx, 
                 settings.messages.message1, 
                 centerX, 
-                bottomAreaTop, 
+                messageY, 
                 font, 
                 fontSize, 
                 typography.messageWeight,
@@ -289,15 +299,16 @@ const addQRCodeAndText = async (
               );
             }
             
-            drawEnhancedQRCode(ctx, qrImg, centerX, bottomThirdCenter, qrSize, settings);
+            drawEnhancedQRCode(ctx, qrImg, centerX, qrY, qrSize, settings);
             
-            // Name below QR with proper spacing
+            // Name below QR with precise 5px spacing
             if (settings.messages.message2) {
+              const nameY = qrY + qrHalfSize + spacing.elementGap + (nameHeight / 2);
               drawEnhancedName(
                 ctx,
                 settings.messages.message2,
                 centerX,
-                bottomThirdCenter + spacing.elementGap / 2,
+                nameY,
                 font,
                 Math.round(fontSize * 0.75),
                 typography.nameWeight,
@@ -316,7 +327,7 @@ const addQRCodeAndText = async (
                 ctx, 
                 settings.messages.message1, 
                 centerX, 
-                topThirdCenter, 
+                topAreaCenter, 
                 font, 
                 fontSize, 
                 typography.messageWeight,
@@ -332,7 +343,7 @@ const addQRCodeAndText = async (
                 ctx,
                 settings.messages.message2,
                 centerX,
-                middleThirdCenter,
+                middleAreaCenter,
                 font,
                 Math.round(fontSize * 1.1),
                 typography.nameWeight,
@@ -341,8 +352,8 @@ const addQRCodeAndText = async (
               );
             }
             
-            // QR code in bottom third with enhanced styling
-            drawEnhancedQRCode(ctx, qrImg, centerX, bottomThirdCenter, qrSize, settings);
+            // QR code in bottom area with enhanced styling
+            drawEnhancedQRCode(ctx, qrImg, centerX, bottomAreaCenter, qrSize, settings);
             break;
         }
         
@@ -417,10 +428,11 @@ const drawEnhancedMessage = (
   lineHeight: number,
   settings: EmbeddedQRSettings
 ): void => {
-  // Set enhanced typography
+  // Set enhanced typography with letter spacing
   ctx.font = `${fontWeight} ${fontSize}px ${font}`;
+  ctx.letterSpacing = `${letterSpacing}px`;
   
-  // Apply letter spacing (approximate with manual character spacing)
+  // Apply responsive text width based on canvas size
   const maxWidth = Math.min(800, x * 1.6); // Responsive width based on canvas size
   const words = message.split(' ');
   let line = '';
@@ -480,8 +492,9 @@ const drawEnhancedName = (
 ): void => {
   ctx.save();
   
-  // Set enhanced typography for names
+  // Set enhanced typography for names with letter spacing
   ctx.font = `${fontWeight} ${fontSize}px ${font}`;
+  ctx.letterSpacing = `${letterSpacing}px`;
   
   // Add text outline effect if enabled
   if (settings.textOutline) {
@@ -559,11 +572,11 @@ const generateQRCode = async (vcard: string, style: QRCodeStyle): Promise<string
 
 export const processBackgroundImage = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
-    // Support up to 4000x6000 images as requested
-    const maxFileSize = 50 * 1024 * 1024; // 50MB max file size
+    // Optimized file size limits for better performance
+    const maxFileSize = 25 * 1024 * 1024; // Reduced to 25MB for better performance
     
     if (file.size > maxFileSize) {
-      reject(new Error('Image file size must be less than 50MB'));
+      reject(new Error('Image file size must be less than 25MB for optimal performance'));
       return;
     }
     
@@ -571,41 +584,62 @@ export const processBackgroundImage = async (file: File): Promise<string> => {
     const ctx = canvas.getContext('2d');
     const img = new Image();
 
-    img.onload = () => {
-      // Support up to 4000x6000 as requested, but resize if larger
-      const maxWidth = 4000;
-      const maxHeight = 6000;
-      let { width, height } = img;
-
-      if (width > maxWidth || height > maxHeight) {
-        const ratio = Math.min(maxWidth / width, maxHeight / height);
-        width *= ratio;
-        height *= ratio;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      if (ctx) {
-        // Fill with white background first
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw the processed image
-        ctx.drawImage(img, 0, 0, width, height);
-      }
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          resolve(url);
-        } else {
-          reject(new Error('Failed to process background image'));
-        }
-      }, 'image/jpeg', 0.95);
+    // Cleanup function to prevent memory leaks
+    const cleanup = () => {
+      URL.revokeObjectURL(img.src);
     };
 
-    img.onerror = () => reject(new Error('Failed to load image'));
+    img.onload = () => {
+      try {
+        // Optimized dimensions for mobile wallpapers (performance balance)
+        const maxWidth = 1440;  // Reduced for better performance
+        const maxHeight = 2560; // Reduced for better performance
+        let { width, height } = img;
+
+        // Smart resizing for performance optimization
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.floor(width * ratio);
+          height = Math.floor(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        if (ctx) {
+          // Enable high-quality rendering
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          
+          // Fill with white background first
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Draw the processed image with optimal quality
+          ctx.drawImage(img, 0, 0, width, height);
+        }
+
+        // Export with optimized quality/size balance
+        canvas.toBlob((blob) => {
+          cleanup();
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            resolve(url);
+          } else {
+            reject(new Error('Failed to process background image'));
+          }
+        }, 'image/jpeg', 0.90); // Slightly reduced quality for better performance
+              } catch {
+          cleanup();
+          reject(new Error('Failed to process background image'));
+        }
+    };
+
+    img.onerror = () => {
+      cleanup();
+      reject(new Error('Failed to load image'));
+    };
+    
     img.src = URL.createObjectURL(file);
   });
 }; 

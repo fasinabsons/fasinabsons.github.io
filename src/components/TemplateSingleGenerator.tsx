@@ -60,7 +60,7 @@ const TemplateSingleGenerator: React.FC<TemplateSingleGeneratorProps> = ({ onBac
 
   const [cardSettings, setCardSettings] = useState<CardSettings>({
     template: { id: 1, name: 'QR Top', description: 'QR code at the top', layout: 'qr-top', preview: '' },
-    backgroundImage: '/src/assets/01.png',
+    backgroundImage: '/assets/01.png',
     font: 'Inter',
     textColor: '#ffffff',
     qrStyle: qrStyle,
@@ -223,7 +223,7 @@ const TemplateSingleGenerator: React.FC<TemplateSingleGeneratorProps> = ({ onBac
   }, [generatedData]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center mb-8">
@@ -258,7 +258,7 @@ const TemplateSingleGenerator: React.FC<TemplateSingleGeneratorProps> = ({ onBac
             />
 
             {/* Background and Font Settings */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+            <div className="bg-gray-800/90 rounded-xl p-6">
               <h3 className="text-xl font-semibold text-white mb-6">Design Settings</h3>
               
               <div className="space-y-6">
@@ -391,7 +391,7 @@ const TemplateSingleGenerator: React.FC<TemplateSingleGeneratorProps> = ({ onBac
 
           {/* Right Column - Preview */}
           <div className="space-y-6">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+            <div className="bg-gray-800/90 rounded-xl p-6">
               <h3 className="text-xl font-semibold text-white mb-6">Preview</h3>
               
               <div className="bg-white rounded-lg p-4">

@@ -27,16 +27,16 @@ interface OCRToQRGeneratorProps {
 }
 
 const DEFAULT_BACKGROUNDS = [
-  { id: 'template1', name: 'Template 01', url: '/src/assets/01.png' },
-  { id: 'template2', name: 'Template 02', url: '/src/assets/02.png' },
-  { id: 'template3', name: 'Template 03', url: '/src/assets/03.png' },
-  { id: 'template4', name: 'Template 04', url: '/src/assets/04.png' },
-  { id: 'template5', name: 'Template 05', url: '/src/assets/05.png' },
-  { id: 'template6', name: 'Template 06', url: '/src/assets/06.png' },
-  { id: 'template7', name: 'Template 07', url: '/src/assets/07.png' },
-  { id: 'template8', name: 'Template 08', url: '/src/assets/08.png' },
-  { id: 'template9', name: 'Template 09', url: '/src/assets/09.png' },
-  { id: 'template10', name: 'Template 10', url: '/src/assets/10.png' }
+  { id: 'template1', name: 'Template 01', url: '/assets/01.png' },
+  { id: 'template2', name: 'Template 02', url: '/assets/02.png' },
+  { id: 'template3', name: 'Template 03', url: '/assets/03.png' },
+  { id: 'template4', name: 'Template 04', url: '/assets/04.png' },
+  { id: 'template5', name: 'Template 05', url: '/assets/05.png' },
+  { id: 'template6', name: 'Template 06', url: '/assets/06.png' },
+  { id: 'template7', name: 'Template 07', url: '/assets/07.png' },
+  { id: 'template8', name: 'Template 08', url: '/assets/08.png' },
+  { id: 'template9', name: 'Template 09', url: '/assets/09.png' },
+  { id: 'template10', name: 'Template 10', url: '/assets/10.png' }
 ];
 
 const LAYOUT_OPTIONS = [

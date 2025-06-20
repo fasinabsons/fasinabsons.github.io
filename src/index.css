@@ -1,3 +1,98 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Performance optimizations to fix white glitches during scrolling */
+* {
+  /* Hardware acceleration for smoother scrolling */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+}
+
+/* Optimize scrolling containers */
+.overflow-y-auto, .overflow-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Optimize backdrop-blur for better performance */
+.backdrop-blur-sm {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-color: rgba(55, 65, 81, 0.9) !important; /* gray-700 with opacity */
+}
+
+/* Smooth scrolling optimization */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent layout shifts during image loading */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Optimize transitions for better performance */
+.transition-all {
+  transition-property: transform, opacity, background-color;
+  transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Fix white background flashes */
+body {
+  background-color: #111827; /* gray-900 */
+  min-height: 100vh;
+}
+
+/* Optimize gradient backgrounds for better performance */
+.bg-gradient-to-br {
+  background: #111827 !important; /* Solid color instead of gradient for better performance */
+}
+
+/* Navigation and interaction optimizations */
+button, .cursor-pointer {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent layout shifts */
+.container {
+  contain: layout style paint;
+}
+
+/* Optimize image loading and prevent flashing */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
+  background-color: transparent;
+}
+
+/* Fix scrolling issues on mobile */
+@media (max-width: 768px) {
+  body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  .grid {
+    gap: 1rem !important; /* Reduce gaps on mobile for better performance */
+  }
+}
+
+/* Optimize animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Fix white flashes during navigation */
+.min-h-screen {
+  background-color: #111827;
+  contain: layout style paint;
+}

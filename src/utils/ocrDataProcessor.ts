@@ -1,47 +1,6 @@
 import { Contact } from '../types';
 
 // Enhanced interfaces for better data handling
-interface ExtractedData {
-  emails: string[];
-  phones: string[];
-  websites: string[];
-  cleanLines: string[];
-  rawText: string;
-  confidence: number;
-  structuredData: StructuredTextData;
-}
-
-interface StructuredTextData {
-  lines: TextLine[];
-  blocks: TextBlock[];
-  words: TextWord[];
-}
-
-interface TextLine {
-  text: string;
-  confidence: number;
-  bbox: BoundingBox;
-  type: 'name' | 'title' | 'company' | 'contact' | 'address' | 'unknown';
-}
-
-interface TextBlock {
-  lines: TextLine[];
-  type: 'header' | 'body' | 'footer';
-  confidence: number;
-}
-
-interface TextWord {
-  text: string;
-  confidence: number;
-  bbox: BoundingBox;
-}
-
-interface BoundingBox {
-  x0: number;
-  y0: number;
-  x1: number;
-  y1: number;
-}
 
 interface ColorInfo {
   hex: string;
@@ -53,17 +12,9 @@ interface ColorInfo {
 interface ProcessedOCRData extends Contact {
   confidence: number;
   logoColors?: ColorInfo[];
-  rawData: any;
+  rawData: unknown;
   fieldConfidences: Record<string, number>;
   alternativeValues: Record<string, string[]>;
-}
-
-interface ProcessingMetrics {
-  ocrTime: number;
-  preprocessingTime: number;
-  parsingTime: number;
-  totalTime: number;
-  imageQuality: number;
 }
 
 // Optimized field detection patterns with improved accuracy
@@ -138,17 +89,8 @@ const FIELD_PATTERNS = {
 
 class OCRDataProcessor {
   private emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  private phoneRegex = /[\+]?[\d\s\-\(\)\.]{7,15}/g;
-  private urlRegex = /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/g;
-  
-  // Enhanced phone number patterns
-  private phonePatterns = {
-    mobile: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
-    international: /\+\d{1,3}[-.\s]?\d{1,14}([-.\s]?\d{1,13})?/,
-    extensions: /(ext|extension|x)\.?\s*\d{1,5}/i
-  };
 
-  processOCRData(rawText: string, confidence: number, structuredData?: any): ProcessedOCRData {
+  processOCRData(rawText: string, confidence: number, structuredData?: unknown): ProcessedOCRData {
     const fieldConfidences: Record<string, number> = {};
     const alternativeValues: Record<string, string[]> = {};
     
@@ -156,9 +98,9 @@ class OCRDataProcessor {
     const { cleanedText, qualityScore } = this.cleanOCRText(rawText, confidence);
     
     // Extract fields with enhanced patterns
-    const emails = this.extractBestEmail(cleanedText, fieldConfidences, alternativeValues);
-    const phones = this.extractBestPhone(cleanedText, fieldConfidences, alternativeValues);
-    const websites = this.extractBestWebsite(cleanedText, fieldConfidences, alternativeValues);
+    const emails = this.extractBestEmail(cleanedText, fieldConfidences);
+    const phones = this.extractBestPhone(cleanedText, fieldConfidences);
+    const websites = this.extractBestWebsite(cleanedText, fieldConfidences);
     
     // Process clean lines for name/org/title extraction
     const cleanLines = this.getCleanLines(cleanedText, emails, phones, websites);
@@ -312,7 +254,7 @@ class OCRDataProcessor {
     return (hasEmail || hasPhone) && hasName;
   }
 
-  private extractBestEmail(text: string, confidences: Record<string, number>, alternatives: Record<string, string[]>): string[] {
+  private extractBestEmail(text: string, confidences: Record<string, number>): string[] {
     const emails = new Set<string>();
     const lines = text.split('\n').map(line => line.trim());
     
@@ -350,7 +292,7 @@ class OCRDataProcessor {
     return emailArray;
   }
 
-  private extractBestPhone(text: string, confidences: Record<string, number>, alternatives: Record<string, string[]>): string[] {
+  private extractBestPhone(text: string, confidences: Record<string, number>): string[] {
     const phones = new Set<string>();
     
     FIELD_PATTERNS.phone.forEach(pattern => {
@@ -383,7 +325,7 @@ class OCRDataProcessor {
     return phoneArray;
   }
 
-  private extractBestWebsite(text: string, confidences: Record<string, number>, alternatives: Record<string, string[]>): string[] {
+  private extractBestWebsite(text: string, confidences: Record<string, number>): string[] {
     const websites = new Set<string>();
     
     FIELD_PATTERNS.website.forEach(pattern => {
